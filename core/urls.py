@@ -19,7 +19,10 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import path, include
 
-from core.settings import URL_PREFIX
+from core.settings import APP_LABEL
+
+URL_PREFIX = APP_LABEL + '/' if APP_LABEL else ''
+
 
 urlpatterns = [
     path(URL_PREFIX + 'admin/', admin.site.urls),
