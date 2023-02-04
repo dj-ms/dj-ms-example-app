@@ -33,3 +33,6 @@ django-celery-beat
 
 # Sentry
 sentry-sdk
+
+# App specific packages
+Pillow
