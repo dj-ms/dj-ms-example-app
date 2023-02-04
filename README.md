@@ -1,12 +1,12 @@
 # Django microservice core
 
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/dj-ms/dj-ms-core?display_name=release&style=for-the-badge)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dj-ms/dj-ms-core?style=for-the-badge)
-![GitHub issues](https://img.shields.io/github/issues/dj-ms/dj-ms-core?style=for-the-badge)
-![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/dj-ms/dj-ms-core?style=for-the-badge)
-![GitHub repo size](https://img.shields.io/github/repo-size/dj-ms/dj-ms-core?style=for-the-badge)
-![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/harleyking/dj-ms-core?style=for-the-badge)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/dj-ms/dj-ms-example-app?display_name=release&style=for-the-badge)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dj-ms/dj-ms-example-app?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/dj-ms/dj-ms-example-app?style=for-the-badge)
+![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/dj-ms/dj-ms-example-app?style=for-the-badge)
+![GitHub repo size](https://img.shields.io/github/repo-size/dj-ms/dj-ms-example-app?style=for-the-badge)
+![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/harleyking/dj-ms-example-app?style=for-the-badge)
 
 ---
 
