@@ -12,25 +12,24 @@ I assume that you have a Kubernetes cluster, and you can access it using `kubect
 
 Also, you need some PostgreSQL database that you can access from your Kubernetes cluster.
 
+### Set environment variables
+
+Create the `.env` file and set the environment variables according to the instructions.
+[Set environment variables](set_env_vars.md).
+```shell
+nano .env
+```
 
 
 ---
 ## Deploy project
-### Set environment variables
-Copy the `.example.env` file to `.env`:
-```shell
-cp .example.env .env
-```
-
-Edit the `.env` file and set the environment variables:
-```shell
-nano .env
-```
 
 Create secret from `.env` file:
 ```shell
 kubectl create secret generic dj-ms-core-secret --from-env-file=.env
 ```
+
+<br>
 
 Apply deployment and service:
 ```shell
