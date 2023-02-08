@@ -1,3 +1,4 @@
+from auditlog.registry import auditlog
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -30,3 +31,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = _('product')
         verbose_name_plural = _('products')
+
+
+auditlog.register(Category)
+auditlog.register(Product)
