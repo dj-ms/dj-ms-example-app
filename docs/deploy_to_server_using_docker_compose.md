@@ -56,6 +56,23 @@ And that's all the difference between running locally and running in production.
 So you can use all the commands you used to run locally. Just add `-f docker-compose.yml -f docker-compose.prod.yml` to them.
 
 
+> On master node you might need to open ports for DB and RabbitMQ. 
+> Search solution in the internet, because it depends on your cloud provider, OS, etc.
+> To open ports in VPS on Ubuntu, you can use the following commands:
+> ```shell
+> sudo ufw allow 5432/tcp
+> sudo ufw allow 5672/tcp
+> sudo ufw allow 15672/tcp
+> sudo iptables -I INPUT -p tcp -m tcp --dport 5432 -j ACCEPT
+> sudo iptables -I INPUT -p tcp -m tcp --dport 5672 -j ACCEPT
+> sudo iptables -I INPUT -p tcp -m tcp --dport 15672 -j ACCEPT
+> ```
+> And then save the rules:
+> ```shell
+> sudo iptables-save > /etc/iptables/rules.v4
+> ```
+> This is not a final solution, but it works for me.
+
 ## Set up Nginx
 
 ### Install Nginx
@@ -76,7 +93,7 @@ sudo yum install nginx -y
 
 Create a new file in the `/etc/nginx/sites-available` directory:
 ```shell
-sudo nano /etc/nginx/sites-available/your-domain-name.com
+sudo nano /etc/nginx/sites-available/<YOUR_DOMAIN_NAME>
 ```
 
 <br>
@@ -85,10 +102,16 @@ Paste the following content to the file:
 ```nginx
 server {
     listen 80;
-    server_name your-domain-name.com www.your-domain-name.com;
+    server_name <YOUR_DOMAIN_NAME> www.<YOUR_DOMAIN_NAME>;
 
     location / {
-        proxy_pass http://localhost:<DJANGO_WEB_PORT>; # Skip <DJANGO_WEB_PORT> if you didn't set it.
+        proxy_pass http://localhost:<DJANGO_WEB_PORT>;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
@@ -97,7 +120,7 @@ server {
 
 Create a symbolic link to the `/etc/nginx/sites-enabled` directory:
 ```shell
-sudo ln -s /etc/nginx/sites-available/your-domain-name.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/<YOUR_DOMAIN_NAME> /etc/nginx/sites-enabled/
 ```
 
 <br>
@@ -133,7 +156,7 @@ Create A-record for your domain name and point it to your server IP address.
 
 Check, that your domain name is accessible from the internet:
 ```shell
-curl -I https://your-domain-name.com
+curl -I http://<YOUR_DOMAIN_NAME>
 ```
 
 <br>
@@ -157,7 +180,7 @@ sudo yum install python3-certbot-nginx -y
 ### Get SSL certificate
 
 ```shell
-sudo certbot --nginx -d your-domain-name.com -d www.your-domain-name.com
+sudo certbot --nginx -d <YOUR_DOMAIN_NAME> -d www.<YOUR_DOMAIN_NAME>
 ```
 
 You will be asked to enter your email address and agree with the terms of service.
@@ -167,7 +190,7 @@ After that, you will be asked to choose the redirect method. Choose the second o
 
 Open the following URL in your browser:
 ```shell
-https://your-domain-name.com/<DJANGO_URL_PREFIX>/admin/ # Skip <DJANGO_URL_PREFIX> if you didn't set it.
+https://<YOUR_DOMAIN_NAME>/<DJANGO_URL_PREFIX>/admin/ # Skip <DJANGO_URL_PREFIX> if you didn't set it.
 ```
 
 If you see the Django admin page, then everything is fine.
@@ -196,6 +219,6 @@ sudo certbot renew --dry-run
 If you see the following message, then everything is fine:
 ```shell
 Congratulations, all renewals succeeded. The following certs have been renewed:
-  /etc/letsencrypt/live/your-domain-name.com/fullchain.pem (success)
+  /etc/letsencrypt/live/<YOUR_DOMAIN_NAME>/fullchain.pem (success)
 ```
 

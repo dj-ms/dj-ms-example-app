@@ -1,15 +1,16 @@
 #!/bin/bash
 
 
-help()
-{
-   echo "Usage: deploy.sh [OPTIONS]"
-   echo
-   echo "Options:"
-   echo "-d, --down            Don't build or deploy, just down the stack"
-   echo "-n, --no-build        Don't build, just deploy"
-   echo "-h, --help            Print this Help."
-   echo
+help() {
+  echo "Usage: deploy.sh [OPTIONS]"
+  echo
+  echo "Options:"
+  echo "-d, --down            Don't build or deploy, just down the stack"
+  echo "-n, --no-build        Don't build, just deploy"
+  echo "-rn                   Recreate nginx conf file"
+  echo "-rno                  Only recreate nginx conf file and exit"
+  echo "-h, --help            Print this Help."
+  echo
 }
 
 
@@ -29,34 +30,71 @@ sed_alt () {
   $SED ${args}
 }
 
-build=true
+build=true rno=false rn=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     -d|--down)
       compose down;
-      exit
-      ;;
+      exit;;
     -n|--no-build)
       build=false;
-      shift
-      ;;
+      shift;;
+    -rno)
+      rno=true;
+      shift;;
+    -rn)
+      rn=true;
+      shift;;
     -h|--help)
       help
-      exit 0
-      ;;
+      exit 0;;
     *)
       echo "Unknown option: $1"
-      exit 2
-      ;;
+      exit 2;;
     esac
 done
 
-if $build; then
-  TAG=$(grep DJ_MS_CORE_VERSION .env | xargs | awk -F "=" '{print $2}')
-  if [[ -z "${TAG}" ]]; then
-    TAG="latest"
+DJ_MS_APP_LABEL=$(grep DJ_MS_APP_LABEL .env | xargs | awk -F "=" '{print $2}')
+if [[ -z "${DJ_MS_APP_LABEL}" ]]; then
+  DJ_MS_APP_LABEL="dj-ms-core"
+fi
+
+create_nginx_conf () {
+  cp nginx/app-locations.conf nginx/"${DJ_MS_APP_LABEL}".conf
+  DJANGO_WEB_PORT=$(grep DJANGO_WEB_PORT .env | xargs | awk -F "=" '{print $2}')
+  if [[ $DJ_MS_APP_LABEL == 'core' ]]; then
+    sed_alt -i "s|DJ_MS_APP_LABEL/||g" nginx/"${DJ_MS_APP_LABEL}".conf
+    sed_alt -i "s|DJANGO_WEB_PORT|$DJANGO_WEB_PORT|g" nginx/"${DJ_MS_APP_LABEL}".conf
+  else
+    sed_alt -i "s/DJ_MS_APP_LABEL/$DJ_MS_APP_LABEL/g" nginx/"${DJ_MS_APP_LABEL}".conf
+    sed_alt -i "s/DJANGO_WEB_PORT/$DJANGO_WEB_PORT/g" nginx/"${DJ_MS_APP_LABEL}".conf
   fi
-  . build.sh -t "$TAG" || exit 126
+
+  echo "
+  Created nginx/${DJ_MS_APP_LABEL}.conf.
+  Copy it to /etc/nginx/ manually and reload Nginx:
+
+  > cp nginx/${DJ_MS_APP_LABEL}.conf /etc/nginx/sites-available/${DJ_MS_APP_LABEL}.conf
+  > ln -s /etc/nginx/sites-available/${DJ_MS_APP_LABEL}.conf /etc/nginx/sites-enabled/${DJ_MS_APP_LABEL}.conf
+  > nginx -s reload
+
+  Tip: If you want to recreate the file, delete it and run this script again with -rno option:
+
+  > rm nginx/${DJ_MS_APP_LABEL}.conf
+  > ./deploy.sh -rno
+  "
+}
+
+if $rno; then
+  create_nginx_conf; exit 0
+fi
+
+if $build; then
+  DOCKER_BASE_IMAGE=$(grep DOCKER_BASE_IMAGE .env | xargs | awk -F "=" '{print $2}')
+  if [[ -z "${DOCKER_BASE_IMAGE}" ]]; then
+    DOCKER_BASE_IMAGE="harleyking/dj-ms-core:latest"
+  fi
+  . build.sh -t "$DOCKER_BASE_IMAGE" || exit 126
 fi
 
 service_scale () {
@@ -90,33 +128,7 @@ else
   compose exec -it nginx nginx -s reload
 fi
 
-DJ_MS_APP_LABEL=$(grep DJ_MS_APP_LABEL .env | xargs | awk -F "=" '{print $2}')
-if [[ -z "${DJ_MS_APP_LABEL}" ]]; then
-  DJ_MS_APP_LABEL="core"
-fi
-
-if [[ ! -f nginx/default.d/${DJ_MS_APP_LABEL}.conf ]]; then
-  cp nginx/default.d/app-locations.conf nginx/default.d/"${DJ_MS_APP_LABEL}".conf
-  DJANGO_WEB_PORT=$(grep DJANGO_WEB_PORT .env | xargs | awk -F "=" '{print $2}')
-  if [[ $DJ_MS_APP_LABEL == 'core' ]]; then
-    sed_alt -i "s|DJ_MS_APP_LABEL/||g" nginx/default.d/"${DJ_MS_APP_LABEL}".conf
-    sed_alt -i "s|DJANGO_WEB_PORT|$DJANGO_WEB_PORT|g" nginx/default.d/"${DJ_MS_APP_LABEL}".conf
-  else
-    sed_alt -i "s/DJ_MS_APP_LABEL/$DJ_MS_APP_LABEL/g" nginx/default.d/"${DJ_MS_APP_LABEL}".conf
-    sed_alt -i "s/DJANGO_WEB_PORT/$DJANGO_WEB_PORT/g" nginx/default.d/"${DJ_MS_APP_LABEL}".conf
-  fi
-
-  echo "
-  Created nginx/default.d/${DJ_MS_APP_LABEL}.conf.
-  Copy it to /etc/nginx/default.d/ manually and reload Nginx:
-
-  > cp nginx/default.d/${DJ_MS_APP_LABEL}.conf /etc/nginx/default.d/${DJ_MS_APP_LABEL}.conf
-  > nginx -s reload
-
-  Tip: If you want to recreate the file, delete it and run this script again:
-
-  > rm nginx/default.d/${DJ_MS_APP_LABEL}.conf
-  > ./deploy.sh -n
-  "
+if [[ ! -f nginx/${DJ_MS_APP_LABEL}.conf || $rn ]]; then
+  create_nginx_conf
 fi
 
